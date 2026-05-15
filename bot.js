@@ -86,7 +86,7 @@ async function processCard(ctx, templateKey) {
   const photoFileId = ctx.session.photoFileId;
   ctx.session = {};
 
-  const processingMsg = await ctx.reply('Processing...');
+  const processingMsg = await ctx.reply('⏳ מעבד...');
 
   try {
     console.log('Starting: ' + name + ' / ' + templateKey);
@@ -95,10 +95,10 @@ async function processCard(ctx, templateKey) {
     const photoResponse = await axios.get(fileLink.href, { responseType: 'arraybuffer', timeout: 30000 });
     console.log('Photo downloaded: ' + photoResponse.data.byteLength);
 
-    await ctx.telegram.editMessageText(ctx.chat.id, processingMsg.message_id, null, 'Removing background...');
+    await ctx.telegram.editMessageText(ctx.chat.id, processingMsg.message_id, null, '⏳ מסיר רקע...');
     const noBgBuffer = await removeBackground(Buffer.from(photoResponse.data));
 
-    await ctx.telegram.editMessageText(ctx.chat.id, processingMsg.message_id, null, 'Building card...');
+    await ctx.telegram.editMessageText(ctx.chat.id, processingMsg.message_id, null, '⏳ בונה כרטיס...');
     const personBuffer = await preparePersonImage(noBgBuffer, TEMPLATES[templateKey].person);
     const cardBuffer = await buildCard(personBuffer, name, templateKey);
     console.log('Card built, size: ' + cardBuffer.length);
@@ -116,7 +116,7 @@ async function processCard(ctx, templateKey) {
         console.log('Sending attempt ' + attempt + '/3...');
         const sendForm = new FormData();
         sendForm.append('chat_id', String(ctx.chat.id));
-        sendForm.append('caption', 'Happy Birthday ' + name + '! 🎉');
+        sendForm.append('caption', '🎂 יום הולדת שמח ' + name + '! 🎉');
         sendForm.append('photo', fs.createReadStream(tmpPath), { filename: 'card.jpg', contentType: 'image/jpeg' });
         const resp = await axios.post(
           'https://api.telegram.org/bot' + process.env.BOT_TOKEN + '/sendPhoto',
@@ -124,7 +124,7 @@ async function processCard(ctx, templateKey) {
           { headers: sendForm.getHeaders(), timeout: 60000, maxContentLength: Infinity }
         );
         if (resp.data.ok) {
-          console.log('Photo sent successfully!');
+          console.log('✅ תמונה נשלחה בהצלחה!');
           sent = true;
           break;
         }
@@ -137,7 +137,7 @@ async function processCard(ctx, templateKey) {
     try { fs.unlinkSync(tmpPath); } catch (e) {}
 
     if (!sent) {
-      await ctx.telegram.sendMessage(ctx.chat.id, 'Failed to send photo after 3 attempts. Please try again.');
+      await ctx.telegram.sendMessage(ctx.chat.id, '❌ לא הצלחתי לשלוח את התמונה. נסה שוב.');
     }
 
   } catch (error) {
@@ -147,9 +147,9 @@ async function processCard(ctx, templateKey) {
 }
 
 function askTemplate(ctx) {
-  return ctx.reply('Choose template:', Markup.inlineKeyboard([[
-    Markup.button.callback('finitistar', 'tmpl_finitistar'),
-    Markup.button.callback('finitiBday', 'tmpl_bday')
+  return ctx.reply('בחר טמפלייט:', Markup.inlineKeyboard([[
+    Markup.button.callback('⭐ finitistar', 'tmpl_finitistar'),
+    Markup.button.callback('🎂 finitiBday', 'tmpl_bday')
   ]]));
 }
 
@@ -161,13 +161,13 @@ bot.start((ctx) => {
 bot.action('tmpl_finitistar', async (ctx) => {
   await ctx.answerCbQuery();
   ctx.session = { templateKey: 'finitistar', step: 'waiting_photo' };
-  await ctx.editMessageText('Template: finitistar\n\nNow send a photo of the person:');
+  await ctx.editMessageText('✅ טמפלייט: ⭐ finitistar\n\n📸 שלח תמונה של האדם שרוצים לברך');
 });
 
 bot.action('tmpl_bday', async (ctx) => {
   await ctx.answerCbQuery();
   ctx.session = { templateKey: 'bday', step: 'waiting_photo' };
-  await ctx.editMessageText('Template: finitiBday\n\nNow send a photo of the person:');
+  await ctx.editMessageText('✅ טמפלייט: 🎂 finitiBday\n\n📸 שלח תמונה של האדם שרוצים לברך');
 });
 
 bot.on('photo', async (ctx) => {
@@ -179,14 +179,14 @@ bot.on('photo', async (ctx) => {
   const photos = ctx.message.photo;
   ctx.session.photoFileId = photos[photos.length - 1].file_id;
   ctx.session.step = 'waiting_name';
-  await ctx.reply('Got it! What is the name for the card?');
+  await ctx.reply('✅ קיבלתי!\n\nמה השם שיופיע על הכרטיס?');
 });
 
 bot.on('text', async (ctx) => {
   ctx.session = ctx.session || {};
   if (ctx.session.step === 'waiting_name') {
     const name = ctx.message.text.trim();
-    if (name.length < 2) return ctx.reply('Name too short, try again:');
+    if (name.length < 2) return ctx.reply('❌ שם קצר מדי, נסה שוב:');
     ctx.session.name = name;
     await processCard(ctx, ctx.session.templateKey);
     return;
