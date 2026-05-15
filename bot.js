@@ -193,12 +193,14 @@ bot.on('text', async (ctx) => {
 
 async function startBot() {
   try {
-    await bot.telegram.deleteWebhook({ drop_pending_updates: true });
+    const webhookPromise = bot.telegram.deleteWebhook({ drop_pending_updates: true });
+    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000));
+    await Promise.race([webhookPromise, timeoutPromise]);
     console.log('Webhook cleared');
   } catch (e) {
-    console.log('Webhook cleanup: ' + e.message);
+    console.log('Webhook cleanup skipped: ' + e.message);
   }
-  await bot.launch({ allowedUpdates: ['message', 'callback_query'] });
+  bot.launch({ allowedUpdates: ['message', 'callback_query'] });
   console.log('finitistar bot is running...');
 }
 
