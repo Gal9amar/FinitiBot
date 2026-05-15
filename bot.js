@@ -60,10 +60,11 @@ async function buildCard(personBuffer, name, templateKey) {
   const tmpl = TEMPLATES[templateKey];
   const nc = tmpl.name;
   const nameSvg = '<svg width="1920" height="1080" xmlns="http://www.w3.org/2000/svg">'
-    + '<text x="' + nc.x + '" y="' + nc.y + '"'
+    + '<text x="960" y="' + nc.y + '"'
     + ' font-family="Arial Black, Impact, sans-serif"'
     + ' font-size="' + nc.fontSize + '" font-weight="900"'
     + ' fill="white" opacity="0.25"'
+    + ' text-anchor="middle"'
     + ' letter-spacing="' + nc.letterSpacing + '"'
     + '>' + name.toUpperCase() + '</text>'
     + '</svg>';
