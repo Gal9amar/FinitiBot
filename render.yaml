@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: finitistar-bot
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: REMOVE_BG_API_KEY
+        sync: false
