@@ -76,7 +76,7 @@ async function buildCard(personBuffer, name, templateKey) {
       { input: personBuffer, left: tmpl.person.left, top: tmpl.person.top },
       { input: Buffer.from(nameSvg), left: 0, top: 0 }
     ])
-    .jpeg({ quality: 95 })
+    .resize(1280, 720).jpeg({ quality: 75 })
     .toBuffer();
   console.log('✅ כרטיס נבנה, גודל:', result.length);
   return result;
@@ -114,20 +114,33 @@ async function processCard(ctx, templateKey) {
       console.log('⚠️ לא הצלחתי למחוק הודעה:', delErr.message);
     }
 
-    try {
-      console.log('📤 מנסה sendPhoto מ-stream...');
-      await ctx.telegram.sendPhoto(
-        ctx.chat.id,
-        { source: fs.createReadStream(tmpPath), filename: 'birthday_card.jpg' },
-        { caption: `🎂 יום הולדת שמח ${name}! 🎉` }
-      );
-      console.log('✅ תמונה נשלחה בהצלחה!');
-    } catch (sendErr) {
-      console.error('❌ שגיאה בשליחת תמונה:', sendErr.message);
-      await ctx.telegram.sendMessage(ctx.chat.id, `❌ שגיאה בשליחת התמונה: ${sendErr.message}`);
-    } finally {
-      try { fs.unlinkSync(tmpPath); } catch (_) {}
+    // שליחה ישירה עם axios + retry 3 פעמים
+    let sent = false;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        console.log(`📤 ניסיון ${attempt}/3...`);
+        const FormDataSend = require('form-data');
+        const sendForm = new FormDataSend();
+        sendForm.append('chat_id', String(ctx.chat.id));
+        sendForm.append('caption', `🎂 יום הולדת שמח ${name}! 🎉`);
+        sendForm.append('photo', fs.createReadStream(tmpPath), { filename: 'birthday_card.jpg', contentType: 'image/jpeg' });
+        const sendResp = await axios.post(
+          `https://api.telegram.org/bot${process.env.BOT_TOKEN}/sendPhoto`,
+          sendForm,
+          { headers: sendForm.getHeaders(), timeout: 60000, maxContentLength: Infinity }
+        );
+        if (sendResp.data.ok) {
+          console.log('✅ תמונה נשלחה בהצלחה!');
+          sent = true;
+          break;
+        }
+      } catch (sendErr) {
+        console.error(`❌ ניסיון ${attempt} נכשל:`, sendErr.message);
+        if (attempt < 3) await new Promise(r => setTimeout(r, 2000));
+      }
     }
+    if (!sent) await ctx.telegram.sendMessage(ctx.chat.id, '❌ לא הצלחתי לשלוח את התמונה. נסה שוב.');
+    try { fs.unlinkSync(tmpPath); } catch (_) {}
   } catch (error) {
     console.error('❌ שגיאה:', error.message);
     const errMsg = error.message.includes('timeout')
