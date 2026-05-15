@@ -98,10 +98,25 @@ async function processCard(ctx, templateKey) {
     await ctx.telegram.editMessageText(ctx.chat.id, processingMsg.message_id, null, '⏳ בונה כרטיס...');
     const personBuffer = await preparePersonImage(noBgBuffer, TEMPLATES[templateKey].person);
     const cardBuffer = await buildCard(personBuffer, name, templateKey);
-    console.log('📨 שולח תמונה לטלגרם...');
-    await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id);
-    await ctx.replyWithPhoto({ source: cardBuffer }, { caption: `🎂 יום הולדת שמח ${name}! 🎉` });
-    console.log('✅ הכל הצליח!');
+    console.log('📨 שולח תמונה לטלגרם... chat_id:', ctx.chat.id);
+    console.log('📦 גודל cardBuffer:', cardBuffer.length);
+    
+    try {
+      await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id);
+      console.log('🗑️ הודעת processing נמחקה');
+    } catch (delErr) {
+      console.log('⚠️ לא הצלחתי למחוק הודעה:', delErr.message);
+    }
+
+    try {
+      console.log('📤 מנסה sendPhoto...');
+      await ctx.telegram.sendPhoto(ctx.chat.id, { source: cardBuffer }, { caption: `🎂 יום הולדת שמח ${name}! 🎉` });
+      console.log('✅ תמונה נשלחה בהצלחה!');
+    } catch (sendErr) {
+      console.error('❌ שגיאה בשליחת תמונה:', sendErr.message);
+      console.error('❌ Full error:', JSON.stringify(sendErr.response || sendErr));
+      await ctx.telegram.sendMessage(ctx.chat.id, `❌ שגיאה בשליחת התמונה: ${sendErr.message}`);
+    }
   } catch (error) {
     console.error('❌ שגיאה:', error.message);
     const errMsg = error.message.includes('timeout')
