@@ -199,6 +199,7 @@ bot.on('text', async (ctx) => {
   if (ctx.session.step === 'waiting_name') {
     const name = ctx.message.text.trim();
     if (name.length < 2) return ctx.reply('❌ שם קצר מדי, נסה שוב:');
+    if (!/^[a-zA-Z\s\-\']+$/.test(name)) return ctx.reply('❌ השם חייב להיות באנגלית בלבד (A-Z)');
     ctx.session.name = name;
     await processCard(ctx, ctx.session.templateKey);
     return;
