@@ -63,8 +63,10 @@ async function buildCard(personBuffer, name, templateKey) {
     + '<text x="' + nc.x + '" y="' + nc.y + '"'
     + ' font-family="Arial Black, Impact, sans-serif"'
     + ' font-size="' + nc.fontSize + '" font-weight="900"'
-    + ' fill="' + nc.color + '" letter-spacing="' + nc.letterSpacing + '"'
-    + '>' + name.toUpperCase() + '</text></svg>';
+    + ' fill="white" opacity="0.25"'
+    + ' letter-spacing="' + nc.letterSpacing + '"'
+    + '>' + name.toUpperCase() + '</text>'
+    + '</svg>';
 
   // בניה ב-1920x1080 ואז resize
   const fullCard = await sharp(tmpl.path)
