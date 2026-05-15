@@ -143,6 +143,12 @@ async function processCard(ctx, templateKey) {
       await ctx.telegram.sendMessage(ctx.chat.id, '❌ לא הצלחתי לשלוח את התמונה. נסה שוב.');
     }
 
+
+    // הודעת ברכה אוטומטית - רק לטמפלייט finitiBday
+    if (sent && templateKey === 'bday') {
+      const blessing = getBlessingForName(name);
+      await ctx.telegram.sendMessage(ctx.chat.id, blessing);
+    }
     // הצגת כפתורים מחדש לביצוע נוסף
     await ctx.telegram.sendMessage(ctx.chat.id, 'רוצה לייצר כרטיס נוסף?', {
       reply_markup: {
@@ -157,6 +163,45 @@ async function processCard(ctx, templateKey) {
     console.error('Error: ' + error.message);
     await ctx.telegram.editMessageText(ctx.chat.id, processingMsg.message_id, null, 'Error: ' + error.message).catch(() => {});
   }
+}
+
+
+const BLESSINGS = [
+  'Happy Birthday {name}! May this year bring you endless joy and success! 🎉',
+  'Wishing you a fantastic birthday {name}! May all your dreams come true! 🌟',
+  'Happy Birthday {name}! Another year older, another year wiser! 🎂',
+  'To the amazing {name} - may your birthday be as wonderful as you are! 🎈',
+  'Happy Birthday {name}! May your day be filled with love, laughter and cake! 🍰',
+  'Cheers to you {name}! Wishing you a year full of amazing adventures! 🥂',
+  'Happy Birthday {name}! May this be your best year yet! ✨',
+  'Sending you the biggest birthday wishes {name}! You deserve all the happiness! 💫',
+  'Happy Birthday {name}! May success and happiness follow you everywhere! 🚀',
+  'To the one and only {name} - have an absolutely spectacular birthday! 🎊',
+  'Happy Birthday {name}! May your year ahead be bright and full of blessings! 🌈',
+  'Wishing {name} a birthday full of warmth, joy and beautiful memories! 💝',
+  'Happy Birthday {name}! May every moment of your special day be magical! 🪄',
+  'Here is to you {name}! May this year exceed all your expectations! 🏆',
+  'Happy Birthday {name}! Wishing you health, wealth and endless happiness! 💪',
+  'To the incredible {name} - may your birthday mark the start of an amazing chapter! 📖',
+  'Happy Birthday {name}! May your smile be as bright as your future! 😊',
+  'Wishing you all the best on your special day {name}! You truly deserve it! 🎁',
+  'Happy Birthday {name}! May this year bring you closer to all your goals! 🎯',
+  'To {name} - may your birthday be the beginning of a year filled with great things! 🌟',
+  'Happy Birthday {name}! May your day shine as bright as your personality! ☀️',
+  'Celebrating you today {name}! Wishing you a year of growth and greatness! 🌱',
+  'Happy Birthday {name}! May every dream you chase this year come true! 🦋',
+  'To the wonderful {name} - may your birthday bring you everything your heart desires! ❤️',
+  'Happy Birthday {name}! Another trip around the sun - may this one be the best! 🌍',
+  'Cheers to {name} on this special day! Wishing you nothing but the best! 🎉',
+  'Happy Birthday {name}! May your year be as outstanding as you are! 💎',
+  'To {name} - wishing you a birthday full of laughter, love and unforgettable moments! 🫶',
+  'Happy Birthday {name}! May this year open doors to new opportunities! 🚪',
+  'The one and only {name} - may your birthday be legendary! 👑'
+];
+
+function getBlessingForName(name) {
+  const idx = Math.floor(Math.random() * BLESSINGS.length);
+  return BLESSINGS[idx].replace(/{name}/g, name);
 }
 
 function askTemplate(ctx) {
