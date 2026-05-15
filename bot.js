@@ -9,10 +9,6 @@ const path = require('path');
 const bot = new Telegraf(process.env.BOT_TOKEN);
 bot.use(session());
 
-// ============================================================
-// HTTP server קטן כדי ש-Render לא יכבה את הסרביס
-// ו-UptimeRobot יוכל לעשות ping
-// ============================================================
 const PORT = process.env.PORT || 3000;
 http.createServer((req, res) => {
   res.writeHead(200);
@@ -21,9 +17,6 @@ http.createServer((req, res) => {
   console.log(`🌐 Health check server on port ${PORT}`);
 });
 
-// ============================================================
-// טמפלייטים
-// ============================================================
 const TEMPLATES = {
   finitistar: {
     path: path.join(__dirname, 'template.jpg'),
@@ -39,10 +32,8 @@ const TEMPLATES = {
   }
 };
 
-// ============================================================
-// הסרת רקע
-// ============================================================
 async function removeBackground(imageBuffer) {
+  console.log('📤 שולח ל-remove.bg...');
   const formData = new FormData();
   formData.append('image_file', imageBuffer, { filename: 'photo.jpg', contentType: 'image/jpeg' });
   formData.append('size', 'auto');
@@ -50,28 +41,27 @@ async function removeBackground(imageBuffer) {
     headers: { 'X-Api-Key': process.env.REMOVE_BG_API_KEY, ...formData.getHeaders() },
     responseType: 'arraybuffer',
     maxContentLength: Infinity,
-    timeout: 30000
+    timeout: 60000
   });
+  console.log('✅ remove.bg הצליח, גודל:', response.data.byteLength);
   return Buffer.from(response.data);
 }
 
-// ============================================================
-// עיבוד תמונה
-// ============================================================
 async function preparePersonImage(noBgBuffer, personConfig) {
-  return await sharp(noBgBuffer)
+  console.log('🖼️ מעבד תמונה עם sharp...');
+  const result = await sharp(noBgBuffer)
     .resize(personConfig.width, personConfig.height, {
       fit: 'contain', position: 'bottom',
       background: { r: 0, g: 0, b: 0, alpha: 0 }
     })
     .png()
     .toBuffer();
+  console.log('✅ sharp הצליח, גודל:', result.length);
+  return result;
 }
 
-// ============================================================
-// בניית כרטיס
-// ============================================================
 async function buildCard(personBuffer, name, templateKey) {
+  console.log('🎨 בונה כרטיס...');
   const tmpl = TEMPLATES[templateKey];
   const nc = tmpl.name;
   const nameSvg = `<svg width="1920" height="1080" xmlns="http://www.w3.org/2000/svg">
@@ -81,45 +71,55 @@ async function buildCard(personBuffer, name, templateKey) {
       fill="${nc.color}" letter-spacing="${nc.letterSpacing}"
     >${name.toUpperCase()}</text>
   </svg>`;
-  return await sharp(tmpl.path)
+  const result = await sharp(tmpl.path)
     .composite([
       { input: personBuffer, left: tmpl.person.left, top: tmpl.person.top },
       { input: Buffer.from(nameSvg), left: 0, top: 0 }
     ])
     .jpeg({ quality: 95 })
     .toBuffer();
+  console.log('✅ כרטיס נבנה, גודל:', result.length);
+  return result;
 }
 
-// ============================================================
-// עיבוד ושליחת כרטיס
-// ============================================================
 async function processCard(ctx, templateKey) {
   if (ctx.session.step !== 'waiting_template') return;
   const { name, photoFileId } = ctx.session;
   ctx.session = {};
   const processingMsg = await ctx.reply('⏳ מעבד...');
   try {
+    console.log(`🚀 מתחיל עיבוד: ${name} / ${templateKey}`);
+
+    console.log('📥 מוריד תמונה מטלגרם...');
     const fileLink = await ctx.telegram.getFileLink(photoFileId);
-    const photoResponse = await axios.get(fileLink.href, { responseType: 'arraybuffer', timeout: 15000 });
+    const photoResponse = await axios.get(fileLink.href, { responseType: 'arraybuffer', timeout: 30000 });
+    console.log('✅ תמונה הורדה, גודל:', photoResponse.data.byteLength);
+
     await ctx.telegram.editMessageText(ctx.chat.id, processingMsg.message_id, null, '⏳ מסיר רקע...');
     const noBgBuffer = await removeBackground(Buffer.from(photoResponse.data));
+
     await ctx.telegram.editMessageText(ctx.chat.id, processingMsg.message_id, null, '⏳ בונה כרטיס...');
     const personBuffer = await preparePersonImage(noBgBuffer, TEMPLATES[templateKey].person);
     const cardBuffer = await buildCard(personBuffer, name, templateKey);
+
+    console.log('📨 שולח תמונה לטלגרם...');
     await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id);
     await ctx.replyWithPhoto({ source: cardBuffer }, { caption: `🎂 יום הולדת שמח ${name}! 🎉` });
+    console.log('✅ הכל הצליח!');
+
   } catch (error) {
-    console.error('Error:', error.message);
-    await ctx.telegram.editMessageText(
-      ctx.chat.id, processingMsg.message_id, null,
-      '❌ שגיאה בעיבוד. נסה שוב מההתחלה.'
-    ).catch(() => {});
+    console.error('❌ שגיאה:', error.message);
+    console.error('Stack:', error.stack);
+    // שולח הודעת שגיאה מפורטת
+    const errMsg = error.message.includes('timeout')
+      ? '❌ timeout – לוקח יותר מדי זמן. נסה עם תמונה קטנה יותר.'
+      : error.message.includes('402') || error.message.includes('403')
+      ? '❌ בעיה עם remove.bg API key. בדוק את המפתח.'
+      : `❌ שגיאה: ${error.message}`;
+    await ctx.telegram.editMessageText(ctx.chat.id, processingMsg.message_id, null, errMsg).catch(() => {});
   }
 }
 
-// ============================================================
-// לוגיקת בוט
-// ============================================================
 bot.start((ctx) => {
   ctx.session = {};
   ctx.reply('🎉 ברוך הבא לבוט כרטיסי finitistar!\n\nשלח לי תמונה של האדם שרוצים לברך 👇');
