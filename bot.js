@@ -100,7 +100,13 @@ async function processCard(ctx, templateKey) {
     const cardBuffer = await buildCard(personBuffer, name, templateKey);
     console.log('📨 שולח תמונה לטלגרם... chat_id:', ctx.chat.id);
     console.log('📦 גודל cardBuffer:', cardBuffer.length);
-    
+
+    // שמירה לקובץ זמני ושליחה כ-stream
+    const fs = require('fs');
+    const tmpPath = `/tmp/card_${Date.now()}.jpg`;
+    fs.writeFileSync(tmpPath, cardBuffer);
+    console.log('💾 נשמר לקובץ זמני:', tmpPath);
+
     try {
       await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id);
       console.log('🗑️ הודעת processing נמחקה');
@@ -109,13 +115,18 @@ async function processCard(ctx, templateKey) {
     }
 
     try {
-      console.log('📤 מנסה sendPhoto...');
-      await ctx.telegram.sendPhoto(ctx.chat.id, { source: cardBuffer }, { caption: `🎂 יום הולדת שמח ${name}! 🎉` });
+      console.log('📤 מנסה sendPhoto מ-stream...');
+      await ctx.telegram.sendPhoto(
+        ctx.chat.id,
+        { source: fs.createReadStream(tmpPath), filename: 'birthday_card.jpg' },
+        { caption: `🎂 יום הולדת שמח ${name}! 🎉` }
+      );
       console.log('✅ תמונה נשלחה בהצלחה!');
     } catch (sendErr) {
       console.error('❌ שגיאה בשליחת תמונה:', sendErr.message);
-      console.error('❌ Full error:', JSON.stringify(sendErr.response || sendErr));
       await ctx.telegram.sendMessage(ctx.chat.id, `❌ שגיאה בשליחת התמונה: ${sendErr.message}`);
+    } finally {
+      try { fs.unlinkSync(tmpPath); } catch (_) {}
     }
   } catch (error) {
     console.error('❌ שגיאה:', error.message);
