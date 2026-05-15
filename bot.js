@@ -191,7 +191,7 @@ bot.on('photo', async (ctx) => {
   const photos = ctx.message.photo;
   ctx.session.photoFileId = photos[photos.length - 1].file_id;
   ctx.session.step = 'waiting_name';
-  await ctx.reply('✅ קיבלתי!\n\nמה השם שיופיע על הכרטיס?');
+  await ctx.reply('✅ קיבלתי!\n\nמה השם שיופיע על הכרטיס?\n(באנגלית בלבד - English only)');
 });
 
 bot.on('text', async (ctx) => {
