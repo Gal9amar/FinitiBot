@@ -142,6 +142,16 @@ async function processCard(ctx, templateKey) {
       await ctx.telegram.sendMessage(ctx.chat.id, '❌ לא הצלחתי לשלוח את התמונה. נסה שוב.');
     }
 
+    // הצגת כפתורים מחדש לביצוע נוסף
+    await ctx.telegram.sendMessage(ctx.chat.id, 'רוצה לייצר כרטיס נוסף?', {
+      reply_markup: {
+        inline_keyboard: [[
+          { text: '⭐ finitistar', callback_data: 'tmpl_finitistar' },
+          { text: '🎂 finitiBday', callback_data: 'tmpl_bday' }
+        ]]
+      }
+    });
+
   } catch (error) {
     console.error('Error: ' + error.message);
     await ctx.telegram.editMessageText(ctx.chat.id, processingMsg.message_id, null, 'Error: ' + error.message).catch(() => {});
