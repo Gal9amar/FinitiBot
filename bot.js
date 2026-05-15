@@ -89,32 +89,25 @@ async function processCard(ctx, templateKey) {
   const processingMsg = await ctx.reply('⏳ מעבד...');
   try {
     console.log(`🚀 מתחיל עיבוד: ${name} / ${templateKey}`);
-
     console.log('📥 מוריד תמונה מטלגרם...');
     const fileLink = await ctx.telegram.getFileLink(photoFileId);
     const photoResponse = await axios.get(fileLink.href, { responseType: 'arraybuffer', timeout: 30000 });
     console.log('✅ תמונה הורדה, גודל:', photoResponse.data.byteLength);
-
     await ctx.telegram.editMessageText(ctx.chat.id, processingMsg.message_id, null, '⏳ מסיר רקע...');
     const noBgBuffer = await removeBackground(Buffer.from(photoResponse.data));
-
     await ctx.telegram.editMessageText(ctx.chat.id, processingMsg.message_id, null, '⏳ בונה כרטיס...');
     const personBuffer = await preparePersonImage(noBgBuffer, TEMPLATES[templateKey].person);
     const cardBuffer = await buildCard(personBuffer, name, templateKey);
-
     console.log('📨 שולח תמונה לטלגרם...');
     await ctx.telegram.deleteMessage(ctx.chat.id, processingMsg.message_id);
     await ctx.replyWithPhoto({ source: cardBuffer }, { caption: `🎂 יום הולדת שמח ${name}! 🎉` });
     console.log('✅ הכל הצליח!');
-
   } catch (error) {
     console.error('❌ שגיאה:', error.message);
-    console.error('Stack:', error.stack);
-    // שולח הודעת שגיאה מפורטת
     const errMsg = error.message.includes('timeout')
-      ? '❌ timeout – לוקח יותר מדי זמן. נסה עם תמונה קטנה יותר.'
+      ? '❌ timeout – נסה עם תמונה קטנה יותר.'
       : error.message.includes('402') || error.message.includes('403')
-      ? '❌ בעיה עם remove.bg API key. בדוק את המפתח.'
+      ? '❌ בעיה עם remove.bg API key.'
       : `❌ שגיאה: ${error.message}`;
     await ctx.telegram.editMessageText(ctx.chat.id, processingMsg.message_id, null, errMsg).catch(() => {});
   }
@@ -166,7 +159,24 @@ bot.action('tmpl_bday', async (ctx) => {
   await processCard(ctx, 'bday');
 });
 
-bot.launch();
-console.log('🤖 finitistar bot is running...');
+// ============================================================
+// הפעלה עם ניקוי webhook קודם למניעת 409 Conflict
+// ============================================================
+async function startBot() {
+  try {
+    console.log('🧹 מנקה webhook קודם...');
+    await bot.telegram.deleteWebhook({ drop_pending_updates: true });
+    console.log('✅ webhook נוקה');
+  } catch (e) {
+    console.log('webhook cleanup:', e.message);
+  }
+  
+  await bot.launch({
+    allowedUpdates: ['message', 'callback_query']
+  });
+  console.log('🤖 finitistar bot is running...');
+}
+
+startBot();
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
