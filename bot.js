@@ -22,7 +22,7 @@ const TEMPLATES = {
   finitistar: {
     path: path.join(__dirname, 'template.jpg'),
     person: { left: 1050, top: 0, width: 870, height: 1080 },
-    name: { x: 40, y: 980, fontSize: 200, color: '#1a3faa', letterSpacing: -5 }
+    name: { x: 40, y: 1060, fontSize: 260, color: '#1a3faa', letterSpacing: -8 }
   },
   bday: {
     path: path.join(__dirname, 'template_bday.jpg'),
