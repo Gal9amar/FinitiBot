@@ -3,11 +3,27 @@ const { Telegraf, session, Markup } = require('telegraf');
 const sharp = require('sharp');
 const axios = require('axios');
 const FormData = require('form-data');
+const http = require('http');
 const path = require('path');
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
 bot.use(session());
 
+// ============================================================
+// HTTP server קטן כדי ש-Render לא יכבה את הסרביס
+// ו-UptimeRobot יוכל לעשות ping
+// ============================================================
+const PORT = process.env.PORT || 3000;
+http.createServer((req, res) => {
+  res.writeHead(200);
+  res.end('finitistar bot is alive 🤖');
+}).listen(PORT, () => {
+  console.log(`🌐 Health check server on port ${PORT}`);
+});
+
+// ============================================================
+// טמפלייטים
+// ============================================================
 const TEMPLATES = {
   finitistar: {
     path: path.join(__dirname, 'template.jpg'),
@@ -23,6 +39,9 @@ const TEMPLATES = {
   }
 };
 
+// ============================================================
+// הסרת רקע
+// ============================================================
 async function removeBackground(imageBuffer) {
   const formData = new FormData();
   formData.append('image_file', imageBuffer, { filename: 'photo.jpg', contentType: 'image/jpeg' });
@@ -30,11 +49,15 @@ async function removeBackground(imageBuffer) {
   const response = await axios.post('https://api.remove.bg/v1.0/removebg', formData, {
     headers: { 'X-Api-Key': process.env.REMOVE_BG_API_KEY, ...formData.getHeaders() },
     responseType: 'arraybuffer',
-    maxContentLength: Infinity
+    maxContentLength: Infinity,
+    timeout: 30000
   });
   return Buffer.from(response.data);
 }
 
+// ============================================================
+// עיבוד תמונה
+// ============================================================
 async function preparePersonImage(noBgBuffer, personConfig) {
   return await sharp(noBgBuffer)
     .resize(personConfig.width, personConfig.height, {
@@ -45,6 +68,9 @@ async function preparePersonImage(noBgBuffer, personConfig) {
     .toBuffer();
 }
 
+// ============================================================
+// בניית כרטיס
+// ============================================================
 async function buildCard(personBuffer, name, templateKey) {
   const tmpl = TEMPLATES[templateKey];
   const nc = tmpl.name;
@@ -64,6 +90,9 @@ async function buildCard(personBuffer, name, templateKey) {
     .toBuffer();
 }
 
+// ============================================================
+// עיבוד ושליחת כרטיס
+// ============================================================
 async function processCard(ctx, templateKey) {
   if (ctx.session.step !== 'waiting_template') return;
   const { name, photoFileId } = ctx.session;
@@ -71,7 +100,7 @@ async function processCard(ctx, templateKey) {
   const processingMsg = await ctx.reply('⏳ מעבד...');
   try {
     const fileLink = await ctx.telegram.getFileLink(photoFileId);
-    const photoResponse = await axios.get(fileLink.href, { responseType: 'arraybuffer' });
+    const photoResponse = await axios.get(fileLink.href, { responseType: 'arraybuffer', timeout: 15000 });
     await ctx.telegram.editMessageText(ctx.chat.id, processingMsg.message_id, null, '⏳ מסיר רקע...');
     const noBgBuffer = await removeBackground(Buffer.from(photoResponse.data));
     await ctx.telegram.editMessageText(ctx.chat.id, processingMsg.message_id, null, '⏳ בונה כרטיס...');
@@ -81,10 +110,16 @@ async function processCard(ctx, templateKey) {
     await ctx.replyWithPhoto({ source: cardBuffer }, { caption: `🎂 יום הולדת שמח ${name}! 🎉` });
   } catch (error) {
     console.error('Error:', error.message);
-    await ctx.telegram.editMessageText(ctx.chat.id, processingMsg.message_id, null, '❌ שגיאה. נסה שוב מההתחלה.');
+    await ctx.telegram.editMessageText(
+      ctx.chat.id, processingMsg.message_id, null,
+      '❌ שגיאה בעיבוד. נסה שוב מההתחלה.'
+    ).catch(() => {});
   }
 }
 
+// ============================================================
+// לוגיקת בוט
+// ============================================================
 bot.start((ctx) => {
   ctx.session = {};
   ctx.reply('🎉 ברוך הבא לבוט כרטיסי finitistar!\n\nשלח לי תמונה של האדם שרוצים לברך 👇');
@@ -132,6 +167,6 @@ bot.action('tmpl_bday', async (ctx) => {
 });
 
 bot.launch();
-console.log('🤖 finitistar birthday bot is running...');
+console.log('🤖 finitistar bot is running...');
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
