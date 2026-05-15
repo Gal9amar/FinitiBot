@@ -83,7 +83,7 @@ async function buildCard(personBuffer, name, templateKey) {
 }
 
 async function processCard(ctx, templateKey) {
-  if (ctx.session.step !== 'waiting_template') return;
+  if (ctx.session.step !== 'waiting_name') return;
   const { name, photoFileId } = ctx.session;
   ctx.session = {};
   const processingMsg = await ctx.reply('⏳ מעבד...');
@@ -152,17 +152,33 @@ async function processCard(ctx, templateKey) {
   }
 }
 
+function askTemplate(ctx) {
+  return ctx.reply('🎨 בחר טמפלייט:', {
+    ...Markup.inlineKeyboard([[
+      Markup.button.callback('⭐ finitistar', 'tmpl_finitistar'),
+      Markup.button.callback('🎂 finitiBday', 'tmpl_bday')
+    ]])
+  });
+}
+
 bot.start((ctx) => {
   ctx.session = {};
-  ctx.reply('🎉 ברוך הבא לבוט כרטיסי finitistar!\n\nשלח לי תמונה של האדם שרוצים לברך 👇');
+  askTemplate(ctx);
 });
 
 bot.on('photo', async (ctx) => {
   ctx.session = ctx.session || {};
+  if (ctx.session.step !== 'waiting_photo') {
+    ctx.session = {};
+    await askTemplate(ctx);
+    return;
+  }
   const photos = ctx.message.photo;
   ctx.session.photoFileId = photos[photos.length - 1].file_id;
   ctx.session.step = 'waiting_name';
-  await ctx.reply('✅ קיבלתי!\n\nמה השם שיופיע על הכרטיס?');
+  await ctx.reply('✅ קיבלתי!
+
+מה השם שיופיע על הכרטיס?');
 });
 
 bot.on('text', async (ctx) => {
@@ -171,31 +187,27 @@ bot.on('text', async (ctx) => {
     const name = ctx.message.text.trim();
     if (name.length < 2) return ctx.reply('❌ שם קצר מדי, נסה שוב:');
     ctx.session.name = name;
-    ctx.session.step = 'waiting_template';
-    await ctx.reply(`✅ שם: *${name}*\n\nאיזה טמפלייט?`, {
-      parse_mode: 'Markdown',
-      ...Markup.inlineKeyboard([[
-        Markup.button.callback('⭐ finitistar', 'tmpl_finitistar'),
-        Markup.button.callback('🎂 finitiBday', 'tmpl_bday')
-      ]])
-    });
+    await processCard(ctx, ctx.session.templateKey);
     return;
   }
-  if (!ctx.session.step) {
-    ctx.reply('📸 שלח לי קודם תמונה של האדם שרוצים לברך');
-  }
+  ctx.session = {};
+  askTemplate(ctx);
 });
 
 bot.action('tmpl_finitistar', async (ctx) => {
   await ctx.answerCbQuery();
-  await ctx.editMessageText(`✅ טמפלייט: ⭐ finitistar | שם: *${ctx.session?.name}*`, { parse_mode: 'Markdown' });
-  await processCard(ctx, 'finitistar');
+  ctx.session = ctx.session || {};
+  ctx.session.templateKey = 'finitistar';
+  ctx.session.step = 'waiting_photo';
+  await ctx.editMessageText('✅ טמפלייט: ⭐ finitistar\n\n📸 שלח תמונה של האדם שרוצים לברך');
 });
 
 bot.action('tmpl_bday', async (ctx) => {
   await ctx.answerCbQuery();
-  await ctx.editMessageText(`✅ טמפלייט: 🎂 finitiBday | שם: *${ctx.session?.name}*`, { parse_mode: 'Markdown' });
-  await processCard(ctx, 'bday');
+  ctx.session = ctx.session || {};
+  ctx.session.templateKey = 'bday';
+  ctx.session.step = 'waiting_photo';
+  await ctx.editMessageText('✅ טמפלייט: 🎂 finitiBday\n\n📸 שלח תמונה של האדם שרוצים לברך');
 });
 
 // ============================================================
