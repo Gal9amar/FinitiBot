@@ -66,11 +66,15 @@ async function buildCard(personBuffer, name, templateKey) {
     + ' fill="' + nc.color + '" letter-spacing="' + nc.letterSpacing + '"'
     + '>' + name.toUpperCase() + '</text></svg>';
 
-  return await sharp(tmpl.path)
+  // בניה ב-1920x1080 ואז resize
+  const fullCard = await sharp(tmpl.path)
     .composite([
       { input: personBuffer, left: tmpl.person.left, top: tmpl.person.top },
       { input: Buffer.from(nameSvg), left: 0, top: 0 }
     ])
+    .toBuffer();
+
+  return await sharp(fullCard)
     .resize(1280, 720)
     .jpeg({ quality: 80 })
     .toBuffer();
