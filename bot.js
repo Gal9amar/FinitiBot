@@ -167,41 +167,41 @@ async function processCard(ctx, templateKey) {
 
 
 const BLESSINGS = [
-  'Happy Birthday {name}! May this year bring you endless joy and success! 🎉',
-  'Wishing you a fantastic birthday {name}! May all your dreams come true! 🌟',
-  'Happy Birthday {name}! Another year older, another year wiser! 🎂',
-  'To the amazing {name} - may your birthday be as wonderful as you are! 🎈',
-  'Happy Birthday {name}! May your day be filled with love, laughter and cake! 🍰',
-  'Cheers to you {name}! Wishing you a year full of amazing adventures! 🥂',
-  'Happy Birthday {name}! May this be your best year yet! ✨',
-  'Sending you the biggest birthday wishes {name}! You deserve all the happiness! 💫',
-  'Happy Birthday {name}! May success and happiness follow you everywhere! 🚀',
-  'To the one and only {name} - have an absolutely spectacular birthday! 🎊',
-  'Happy Birthday {name}! May your year ahead be bright and full of blessings! 🌈',
-  'Wishing {name} a birthday full of warmth, joy and beautiful memories! 💝',
-  'Happy Birthday {name}! May every moment of your special day be magical! 🪄',
-  'Here is to you {name}! May this year exceed all your expectations! 🏆',
-  'Happy Birthday {name}! Wishing you health, wealth and endless happiness! 💪',
-  'To the incredible {name} - may your birthday mark the start of an amazing chapter! 📖',
-  'Happy Birthday {name}! May your smile be as bright as your future! 😊',
-  'Wishing you all the best on your special day {name}! You truly deserve it! 🎁',
-  'Happy Birthday {name}! May this year bring you closer to all your goals! 🎯',
-  'To {name} - may your birthday be the beginning of a year filled with great things! 🌟',
-  'Happy Birthday {name}! May your day shine as bright as your personality! ☀️',
-  'Celebrating you today {name}! Wishing you a year of growth and greatness! 🌱',
-  'Happy Birthday {name}! May every dream you chase this year come true! 🦋',
-  'To the wonderful {name} - may your birthday bring you everything your heart desires! ❤️',
-  'Happy Birthday {name}! Another trip around the sun - may this one be the best! 🌍',
-  'Cheers to {name} on this special day! Wishing you nothing but the best! 🎉',
-  'Happy Birthday {name}! May your year be as outstanding as you are! 💎',
-  'To {name} - wishing you a birthday full of laughter, love and unforgettable moments! 🫶',
-  'Happy Birthday {name}! May this year open doors to new opportunities! 🚪',
-  'The one and only {name} - may your birthday be legendary! 👑'
+  'שיהיה לך יום הולדת מדהים, מלא שמחה ואהבה! 🎉',
+  'שהשנה הבאה תביא לך הצלחות, בריאות ואושר! 🌟',
+  'יום הולדת שמח! שכל חלום שלך יתגשם השנה! 🎂',
+  'שיום ההולדת שלך יהיה מיוחד כמוך! 🎈',
+  'שתמיד תמשיך לחייך ולהאיר לכל סביבך! 🍰',
+  'שהשנה הזו תהיה מלאה בהרפתקאות מרגשות! 🥂',
+  'שזו תהיה שנתך הטובה ביותר עד כה! ✨',
+  'מגיע לך כל טוב בעולם - שיהיה לך יום מושלם! 💫',
+  'שהצלחה ואושר ילוו אותך בכל צעד השנה! 🚀',
+  'שיום ההולדת שלך יהיה ספקטקולרי! 🎊',
+  'שהשנה הקרובה תהיה מלאה באור ובברכות! 🌈',
+  'שיום ההולדת שלך יהיה מלא בחום ובאהבה! 💝',
+  'שכל רגע ביום המיוחד שלך יהיה קסום! 🪄',
+  'שהשנה הזו תעלה על כל הציפיות שלך! 🏆',
+  'שתזכה לבריאות, הצלחה ואושר אין סופי! 💪',
+  'שיום ההולדת שלך יסמן תחילת פרק מדהים חדש! 📖',
+  'שהחיוך שלך יאיר את כל הדרך! 😊',
+  'מגיע לך הכי טוב - שיהיה לך יום מיוחד! 🎁',
+  'שהשנה הזו תקרב אותך לכל המטרות שלך! 🎯',
+  'שיום ההולדת שלך יהיה רק ההתחלה של שנה מדהימה! 🌟',
+  'שיומך יזהיר כמו האישיות שלך! ☀️',
+  'שזו תהיה שנה של צמיחה וגדולה! 🌱',
+  'שכל חלום שתרדוף אחריו יתגשם! 🦋',
+  'שיום ההולדת שלך יביא לך את כל מה שלבך חפץ! ❤️',
+  'עוד סיבוב סביב השמש - שזה יהיה הטוב ביותר! 🌍',
+  'שתמיד תזכה לטוב ביותר שהחיים יכולים להציע! 🎉',
+  'שהשנה שלך תהיה יוצאת דופן כמוך! 💎',
+  'שיום ההולדת שלך יהיה מלא בצחוק ובאהבה! 🫶',
+  'שהשנה הזו תפתח בפניך דלתות חדשות! 🚪',
+  'שיום ההולדת שלך יהיה אגדי! 👑'
 ];
 
 function getBlessingForName(name) {
   const idx = Math.floor(Math.random() * BLESSINGS.length);
-  return BLESSINGS[idx].replace(/{name}/g, name);
+  return name + '\n' + BLESSINGS[idx];
 }
 
 function askTemplate(ctx) {
