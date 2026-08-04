@@ -56,16 +56,63 @@ async function preparePersonImage(noBgBuffer, personConfig) {
     .toBuffer();
 }
 
+const NAME_MAX_WIDTH = 1840;
+const NAME_MIN_FONT_SIZE = 70;
+
+function nameTextSvg(upperName, fontSize, letterSpacing) {
+  return '<svg width="4000" height="600" xmlns="http://www.w3.org/2000/svg">'
+    + '<text x="0" y="500"'
+    + ' font-family="Arial Black, Impact, sans-serif"'
+    + ' font-size="' + fontSize + '" font-weight="900"'
+    + ' fill="white" letter-spacing="' + letterSpacing + '"'
+    + '>' + upperName + '</text>'
+    + '</svg>';
+}
+
+async function measureTextWidth(upperName, fontSize, letterSpacing) {
+  const svg = nameTextSvg(upperName, fontSize, letterSpacing);
+  const { info } = await sharp(Buffer.from(svg))
+    .png()
+    .trim()
+    .toBuffer({ resolveWithObject: true });
+  return info.width;
+}
+
+async function calcNameStyle(name, nc) {
+  const upperName = name.toUpperCase();
+  const letterSpacingRatio = nc.letterSpacing / nc.fontSize;
+  const widthAt = (fontSize) => measureTextWidth(upperName, fontSize, fontSize * letterSpacingRatio);
+
+  if (await widthAt(nc.fontSize) <= NAME_MAX_WIDTH) {
+    return { fontSize: nc.fontSize, letterSpacing: nc.letterSpacing };
+  }
+
+  // font metrics don't scale linearly with size (hinting), so binary-search the largest fit
+  let lo = NAME_MIN_FONT_SIZE;
+  let hi = nc.fontSize;
+  for (let i = 0; i < 10; i++) {
+    const mid = (lo + hi) / 2;
+    if (await widthAt(mid) > NAME_MAX_WIDTH) {
+      hi = mid;
+    } else {
+      lo = mid;
+    }
+  }
+
+  return { fontSize: lo, letterSpacing: lo * letterSpacingRatio };
+}
+
 async function buildCard(personBuffer, name, templateKey) {
   const tmpl = TEMPLATES[templateKey];
   const nc = tmpl.name;
+  const { fontSize, letterSpacing } = await calcNameStyle(name, nc);
   const nameSvg = '<svg width="1920" height="1080" xmlns="http://www.w3.org/2000/svg">'
     + '<text x="960" y="' + nc.y + '"'
     + ' font-family="Arial Black, Impact, sans-serif"'
-    + ' font-size="' + nc.fontSize + '" font-weight="900"'
+    + ' font-size="' + fontSize + '" font-weight="900"'
     + ' fill="white" opacity="0.25"'
     + ' text-anchor="middle"'
-    + ' letter-spacing="' + nc.letterSpacing + '"'
+    + ' letter-spacing="' + letterSpacing + '"'
     + '>' + name.toUpperCase() + '</text>'
     + '</svg>';
 
