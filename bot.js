@@ -28,11 +28,6 @@ const TEMPLATES = {
     path: path.join(__dirname, 'template_bday.jpg'),
     person: { left: 980, top: 0, width: 940, height: 1080 },
     name: { x: 30, y: 1060, fontSize: 260, color: '#1a3faa', letterSpacing: -8 }
-  },
-  family: {
-    path: path.join(__dirname, 'template_family.jpg'),
-    person: { left: 1050, top: 0, width: 870, height: 1080 },
-    name: { x: 40, y: 1060, fontSize: 260, color: '#1a3faa', letterSpacing: -8 }
   }
 };
 
@@ -206,8 +201,7 @@ async function processCard(ctx, templateKey) {
       reply_markup: {
         inline_keyboard: [[
           { text: '⭐ finitistar', callback_data: 'tmpl_finitistar' },
-          { text: '🎂 finitiBday', callback_data: 'tmpl_bday' },
-          { text: '👨‍👩‍👧‍👦 FinitiFamily', callback_data: 'tmpl_family' }
+          { text: '🎂 finitiBday', callback_data: 'tmpl_bday' }
         ]]
       }
     });
@@ -260,8 +254,7 @@ function getBlessingForName(name) {
 function askTemplate(ctx) {
   return ctx.reply('בחר טמפלייט:', Markup.inlineKeyboard([[
     Markup.button.callback('⭐ finitistar', 'tmpl_finitistar'),
-    Markup.button.callback('🎂 finitiBday', 'tmpl_bday'),
-    Markup.button.callback('👨‍👩‍👧‍👦 FinitiFamily', 'tmpl_family')
+    Markup.button.callback('🎂 finitiBday', 'tmpl_bday')
   ]]));
 }
 
@@ -280,12 +273,6 @@ bot.action('tmpl_bday', async (ctx) => {
   await ctx.answerCbQuery();
   ctx.session = { templateKey: 'bday', step: 'waiting_photo' };
   await ctx.editMessageText('✅ טמפלייט: 🎂 finitiBday\n\n📸 שלח תמונה של האדם שרוצים לברך');
-});
-
-bot.action('tmpl_family', async (ctx) => {
-  await ctx.answerCbQuery();
-  ctx.session = { templateKey: 'family', step: 'waiting_photo' };
-  await ctx.editMessageText('✅ טמפלייט: 👨‍👩‍👧‍👦 FinitiFamily\n\n📸 שלח תמונה של האדם שרוצים לברך');
 });
 
 bot.on('photo', async (ctx) => {
